@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>by cef studio</title>
+    <link rel="stylesheet" href="css/hud-1.css">
+    <link rel="stylesheet" href="css/main-1.css">
+    <link rel="stylesheet" type="text/css" href="css/fonts/stylesheet-1.css">
+</head>
+<body>
+    <div class="cefstudio-interface">
+        <div id="fps" style="display: none;">30 FPS</div>
+        <div class="cefstudio-hud" v-if="isHudActive" v-cloak="">
+            <div class="server-name">
+                <img src="images/logo-1.png">
+                <div class="column">
+                    <div class="name">ВЕСТОЧКА</div>
+                    <div class="server">ПЕРВЫЙ СЕРВЕР</div>
+                </div>
+            </div>
+            <div class="block-first">
+                <div class="weapon-container">
+                    <img class="weapon" :src="weapon">
+                    <span v-if="!/images\/guns\/(0|1|2|3|4|5|6|7|8|10|15|46)\.png/.test(weapon)" class="ammo">{{ ammo }}</span>
+                    <img v-else="" class="icon" src="images/infinity-1.png">
+                </div>
+                <div class="progress-container">
+                    <div class="block-two">
+                        <div class="progress-bar">
+                            <div class="progress-health" v-bind:style="{ width: Math.min(health, 100) + '%' }"></div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-armour" v-bind:style="{ width: Math.min(armour, 100) + '%' }"></div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-stamina" v-bind:style="{ width: Math.min(stamina, 100) + '%' }"></div>
+                        </div>
+                    </div>
+                    <div class="progress-value">
+                        <div class="value">{{ health }}</div>
+                        <div class="value">{{ armour }}</div>
+                        <div class="value">{{ stamina }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="money-block">
+                <div id="cash" class="money">52<img src="images/money-1.png"></div>
+            </div>
+            <div v-show="suspect" class="suspect-block">
+                <div class="text">В розыске</div>
+                <div class="star">
+                    <img v-for="star in 6" :src="star <= suspect ? 'images/star.active.svg' : 'images/star.noactive.svg'">
+                </div>
+            </div>
+            <div class="kill-list">
+                <div v-for="(kill, index) in lastFiveKills" :key="index" class="kill">
+                    <div class="killer" v-html="replaceColors(kill.killer)"></div>
+                    <img :src="`images/guns/${kill.weapon}.png`">
+                    <div class="killed" v-html="replaceColors(kill.killed)"></div>
+                </div>
+            </div>
+            <div class="date-time-block">
+                <div class="date-time">
+                    <img src="images/time-1.png" width="20">
+                    <div id="server-time">22:35.08</div>
+                </div>
+                <div class="date-time">
+                    <img src="images/date-1.png" width="20">
+                    <div id="server-date">10.01.2024</div>
+                </div>
+            </div>
+            <div class="capture-block" v-show="isCaptureVisible">
+                <div class="gang" style="margin-left: 3vh;">
+                    <div class="counter">{{ captureGang[0].score }}<p>{{ captureGang[0].name }}</p></div>
+                </div>
+                <div class="center-block">
+                    <div class="timer">{{ formattedCaptureTime  }}</div>
+                    <div class="round">{{ captureRound }}</div>
+                </div>
+                <div class="gang" style="margin-right: 3vh;">
+                    <div class="counter" style="direction: rtl;">{{ captureGang[1].score }}<p>{{ captureGang[1].name }}</p></div>
+                </div>
+            </div>
+        </div>
+        <div class="cefstudio-speedometer" v-if="isSpeedActive" v-cloak="">
+            <div class="count-block">
+                <p>{{ vehicleSpeed }}</p>
+                <div class="gear-block">
+                    <div class="gear" :class="{ active: vehicleGear === 'P' }">P</div>
+                    <div class="gear" :class="{ active: vehicleGear === 'D' }">D</div>
+                    <div class="gear" :class="{ active: vehicleGear === 'R' }">R</div>
+                </div>
+            </div>
+            <img class="background" src="images/speed-bg-1.png">
+            <svg class="speed" width="33vh" height="40vh" viewbox="0 0 280 60" fill="none">
+                <path stroke-width="6" fill="none" d="M60.340,185.660 C18.553,143.874 18.553,76.126 60.340,34.340 C102.126,-7.447 169.874,-7.447 211.660,34.340 C253.446,76.126 253.446,143.874 211.660,185.660 "></path>
+                <path id="speed" stroke="#f23856" stroke-width="6" fill="none" d="M60.340,185.660 C18.553,143.874 18.553,76.126 60.340,34.340 C102.126,-7.447 169.874,-7.447 211.660,34.340 C253.446,76.126 253.446,143.874 211.660,185.660" style="stroke-dasharray: 624.295, 504.295; stroke-dashoffset: 624.295;"></path>
+            </svg>
+            <div class="icon-block">
+                <img v-if="isVehicleEngine" class="icon" src="images/speed/engine_on-1.png" style="width: 2.9vh; height: 1.9vh;">
+                <img v-else="" class="icon" src="images/speed/engine-1.png" style="width: 2.9vh; height: 1.9vh;">
+                <img v-if="isVehicleLights" class="icon" src="images/speed/lights_on-1.png" style="width: 2.5vh; height: 1.5vh; top: 0.3vh; left: 0.1vh;">
+                <img v-else="" class="icon" src="images/speed/lights-1.png" style="width: 2.5vh; height: 1.5vh; top: 0.3vh; left: 0.1vh;">
+                <img v-if="isVehicleDoors" class="icon" src="images/speed/lock_on-1.png" style="width: 2.5vh; height: 1.6vh; top: 0.15vh;">
+                <img v-else="" class="icon" src="images/speed/lock-1.png" style="width: 2.5vh; height: 1.6vh; top: 0.15vh;">
+                <img v-if="isVehicleKey" class="icon" src="images/speed/key_on-1.png" style="width: 2.5vh; height: 1.7vh; top: 0.1vh;">
+                <img v-else="" class="icon" src="images/speed/key-1.png" style="width: 2.5vh; height: 1.7vh; top: 0.1vh;">
+            </div>
+            <svg class="progress-vehicle-fuel" viewbox="0 0 100 320" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(-13.5)">
+                <path d="M41.8301 312C17.8305 276.5 -4.2306 204.241 13.3311 134C24.832 88 51.8336 39 95.832 5" stroke="#141414cb" stroke-opacity="0.5" stroke-width="8"></path>
+                <path id="progress-vehicle-fuel" d="M41.8301 312C17.8305 276.5 -4.2306 204.241 13.3311 134C24.832 88 51.8336 39 95.832 5" stroke="#f23856" stroke-width="8" style="stroke-dasharray: 500; stroke-dashoffset: 500;"></path>
+            </svg>
+            <div class="vehicle-fuel-block">
+                <div class="vehicle-fuel">{{ vehicleFuel }} л</div>
+                <img class="vehicle-fuel-icon" src="images/fuel-1.svg">
+            </div>
+            <svg class="progress-vehicle-health" viewbox="0 0 100 320" fill="none" xmlns="http://www.w3.org/2000/svg" transform="scale(-1, 1) rotate(-13.5)">
+                <path d="M41.8301 312C17.8305 276.5 -4.2306 204.241 13.3311 134C24.832 88 51.8336 39 95.832 5" stroke="#141414cb" stroke-opacity="0.5" stroke-width="8"></path>
+                <path id="progress-vehicle-health" d="M41.8301 312C17.8305 276.5 -4.2306 204.241 13.3311 134C24.832 88 51.8336 39 95.832 5" stroke="#f23856" stroke-width="8" style="stroke-dasharray: 500; stroke-dashoffset: 500;"></path>
+            </svg>
+            <div class="vehicle-health-block">
+                <img class="vehicle-health-icon" src="images/gears-1.png">
+                <div class="vehicle-health">{{ vehicleHealth }} %</div>
+            </div>
+        </div>
+    </div>
+    <div id="app">
+        <div id="interface-radial" class="interface-radial" v-if="radial" v-cloak="">
+            <div class="information-block">
+                <div class="name">{{ radialButtonName }}</div>
+                <div class="red">{{ radialButtonWarning }}</div>
+                <div class="mouse-block">
+                    <div id="mouse" class="mouse" style="opacity: .5;">
+                        <img src="images/icon-rightclick-1.png">
+                        <p>Выбрать</p>
+                    </div>
+                    <div class="mouse">
+                        <img src="images/icon-leftclick-1.png">
+                        <p>Назад</p>
+                    </div>
+                </div>
+            </div>
+            <div class="time-info">
+                <div class="time-block">
+                    <div class="content">
+                        <div class="time">{{ radialTimeInGame}} мин</div>
+                        <div class="description">время в игре<br>за сегодня</div>
+                    </div>
+                </div>
+                <div class="time-block">
+                    <div class="content">
+                        <div class="time">{{ radialTimeInAFK }} мин</div>
+                        <div class="description" style="max-width: 10vh;">время в AFK<br>за сегодня</div>
+                    </div>
+                </div>
+                <div class="time-block">
+                    <div class="content">
+                        <div class="time">{{ radialTimeHour }} мин</div>
+                        <div class="description">время в игре<br>за текущий час</div>
+                    </div>
+                </div>
+            </div>
+            <div class="server-info">
+                <div class="info-block">
+                    <div class="content">
+                        <div class="info online">{{ radialPlayersOnline }}</div>
+                        <div class="description">Игроков онлайн</div>
+                    </div>
+                    <img src="images/online-1.svg">
+                </div>
+                <div class="info-block">
+                    <div class="content">
+                        <div class="info">{{ radialPlayerName }}</div>
+                        <div class="description">{{ radialNetwork }}</div>
+                    </div>
+                    <img src="images/network-1.svg">
+                </div>
+                <div class="info-block">
+                    <div class="content">
+                        <div class="info">Голосовой сервер</div>
+                        <div class="description">{{ radialVoiceNetwork }}</div>
+                    </div>
+                    <img src="images/microphone-1.svg">
+                </div>
+            </div>
+            <svg v-if="radialCurrentMenu" width="67vh" height="67vh" viewbox="0 0 595 602" fill="none" v-cloak="">
+                <defs>
+                    <radialgradient id="radialGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                        <stop offset="0%" stop-color="black" stop-opacity=".7"></stop>
+                        <stop offset="20%" stop-color="black" stop-opacity=".5"></stop>
+                        <stop offset="40%" stop-color="black" stop-opacity="0.3"></stop>
+                        <stop offset="55%" stop-color="black" stop-opacity="0.2"></stop>
+                        <stop offset="60%" stop-color="black" stop-opacity=".4"></stop>
+                        <stop offset="80%" stop-color="black" stop-opacity=".3"></stop>
+                        <stop offset="100%" stop-color="black" stop-opacity="0"></stop>
+                    </radialgradient>
+                </defs>
+                <circle cx="297" cy="302" r="280" fill="url(#radialGradient)"></circle>
+                <g v-if="radialCurrentMenu == 10" transform="translate(0, 6)" v-cloak="">
+                    <path class="button-border" d="M250.087 135.371C281.955 125.544 316.045 125.544 347.913 135.371L346.935 138.543C315.704 128.913 282.296 128.913 251.065 138.543L250.087 135.371Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="1" data-name="Загрузка личного транспорта" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M221.037 45.9643C271.788 30.0121 326.211 30.0121 376.963 45.9643L349.676 132.777C316.687 122.408 281.312 122.408 248.324 132.777L221.037 45.9643Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image :href="radialCarUploaded ? 'images/icon-cars2-1.png' : 'images/icon-cars2-1.png'" height="35" width="35" x="283" y="65"></image> 
+                    <image id="car-arrow" class="arrow" style="opacity: 0;" href="images/arrow-1.svg" height="28" width="28" x="286" y="35"></image> 
+                    <path class="button-border" d="M352.669 136.915C384.227 147.697 411.806 167.734 431.812 194.416L429.156 196.408C409.55 170.26 382.522 150.623 351.595 140.057L352.669 136.915Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="2" :data-name="radialPassiveActive ? 'Выключить пассивный режим' : 'Включить пассивный режим'" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M381.719 47.509C432.154 64.4343 476.183 96.4236 507.865 139.16L434.763 193.354C414.169 165.575 385.55 144.782 352.767 133.781L381.719 47.509Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-passive-1.png" height="42" width="42" x="405" y="103"></image> 
+                    <path class="button-border" d="M434.751 198.461C453.945 225.733 464.479 258.154 464.981 291.5L461.661 291.55C461.169 258.871 450.846 227.099 432.036 200.372L434.751 198.461Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="3" data-name="Использовать анимацию" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M510.804 143.205C541.659 186.543 558.477 238.303 558.988 291.5L467.992 292.375C467.66 257.797 456.728 224.153 436.673 195.983L510.804 143.205Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-danse-1.png" height="42" width="42" x="482" y="215"></image> 
+                    <path class="button-border" d="M464.981 296.5C464.479 329.846 453.945 362.267 434.751 389.539L432.036 387.628C450.846 360.901 461.169 329.129 461.662 296.45L464.981 296.5Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="4" data-name="Посмотреть документы" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M558.988 296.5C558.477 349.697 541.659 401.457 510.804 444.795L436.673 392.016C456.728 363.847 467.66 330.203 467.992 295.625L558.988 296.5Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-pass-1.png" height="40" width="40" x="482" y="340"></image> 
+                    <path class="button-border" d="M431.812 393.584C411.806 420.266 384.227 440.303 352.669 451.085L351.595 447.943C382.522 437.377 409.55 417.74 429.156 391.592L431.812 393.584Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="5" data-name="Посмотреть удостверение или навыки" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M507.866 448.839C476.183 491.576 432.154 523.565 381.719 540.49L352.767 454.219C385.55 443.217 414.169 422.424 434.763 394.645L507.866 448.839Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-naviki-1.png" height="40" width="40" x="406" y="448"></image> 
+                    <image id="naviki-arrow" class="arrow" style="opacity: 0;" href="images/arrow1-1.svg" height="40" width="40" x="427" y="472"></image> 
+                    <path class="button-border" d="M347.913 452.629C316.045 462.456 281.955 462.456 250.087 452.629L251.065 449.457C282.296 459.087 315.704 459.087 346.935 449.457L347.913 452.629Z" fill="#D9D9D9" :style="radialSleepActive ? '#D9D9D9' : 'fill: rgba(0,0,0,0.3)'"></path>
+                    <path class="button" data-button="6" data-name="Лечь спать" data-warning="Вы не можете спать в этой зеленой зоне, выберите другое место" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="radialSleepActive && onclickbutton($event.target.dataset.button)" d="M376.963 542.036C326.212 557.988 271.789 557.988 221.037 542.036L248.324 455.223C281.313 465.592 316.688 465.592 349.676 455.223L376.963 542.036Z" fill="rgba(0,0,0,0.5)" :style="radialSleepActive ? '' : 'fill: rgba(0,0,0,0.4)'"></path>
+                    <image href="images/icon-sleep-1.png" :style="radialSleepActive ? 'opacity: 1' : 'opacity: .7'" height="43" width="43" x="278" y="487"></image> 
+                    <path class="button-border" d="M245.331 451.085C213.773 440.303 186.194 420.266 166.188 393.584L168.844 391.592C188.45 417.74 215.478 437.377 246.405 447.943L245.331 451.085Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="7" data-name="Надеть маску" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M216.281 540.491C165.846 523.566 121.817 491.576 90.1346 448.84L163.237 394.646C183.831 422.425 212.45 443.218 245.233 454.219L216.281 540.491Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-mask-1.png" height="41" width="41" x="150" y="446"></image> 
+                    <path class="button-border" d="M163.249 389.539C144.055 362.267 133.521 329.846 133.019 296.5L136.339 296.45C136.831 329.129 147.154 360.901 165.964 387.628L163.249 389.539Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="8" data-name="Съесть еду" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M87.1956 444.795C56.3411 401.457 39.5233 349.697 39.0118 296.5L130.008 295.625C130.34 330.203 141.272 363.847 161.327 392.017L87.1956 444.795Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-eat-1.png" height="43" width="43" x="73" y="338"></image> 
+                    <path class="button-border" d="M133.019 291.5C133.521 258.154 144.055 225.733 163.249 198.461L165.964 200.372C147.154 227.099 136.831 258.871 136.338 291.55L133.019 291.5Z" fill="#D9D9D9" :style="radialDrugsActive ? '#D9D9D9' : 'fill: rgba(0,0,0,0.3)'"></path>
+                    <path class="button" data-button="9" data-name="Принять вещества" data-warning="У вас нет веществ" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="radialDrugsActive && onclickbutton($event.target.dataset.button)" d="M39.0119 291.5C39.5234 238.303 56.3412 186.543 87.1957 143.205L161.327 195.984C141.272 224.153 130.34 257.797 130.008 292.375L39.0119 291.5Z" fill="rgba(0,0,0,0.5)" :style="radialDrugsActive ? '' : 'fill: rgba(0,0,0,0.4)'"></path>
+                    <image href="images/icon-drug-1.png" height="45" width="45" x="72" y="210" :style="radialDrugsActive ? 'opacity: 1' : 'opacity: .7'" height="43" width="43" x="347" y="483"></image> 
+                    <path class="button-border" d="M166.188 194.416C186.194 167.734 213.773 147.697 245.331 136.915L246.405 140.057C215.478 150.623 188.45 170.26 168.844 196.408L166.188 194.416Z" fill="#D9D9D9" :style="radialHealthActive ? '#D9D9D9' : 'fill: rgba(0,0,0,0.3)'"></path>
+                    <path class="button" data-button="10" data-name="Использовать аптечку" data-warning="Вы не нуждаетесь в лечении" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="radialHealthActive && onclickbutton($event.target.dataset.button)" d="M90.1344 139.161C121.817 96.4241 165.846 64.4348 216.281 47.5096L245.233 133.781C212.45 144.783 183.831 165.576 163.237 193.355L90.1344 139.161Z" fill="rgba(0,0,0,0.5)" :style="radialHealthActive ? '' : 'fill: rgba(0,0,0,0.4)'"></path>
+                    <image href="images/icon-apteka-1.png" height="41" width="41" x="150" y="100" :style="radialHealthActive ? 'opacity: 1' : 'opacity: .7'"></image> 
+                </g>
+                <g v-if="radialCurrentMenu == 11" transform="translate(-25.9, -38) scale(0.995)" v-cloak="">
+                    <path class="button-border" d="M244.925 193.207C269.864 179.3 297.945 172 326.5 172C355.055 172 383.136 179.3 408.076 193.207L406.444 196.133C382.004 182.504 354.484 175.35 326.5 175.35C298.516 175.35 270.997 182.504 246.556 196.133L244.925 193.207Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="11" data-name="Документы на ТС" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M197.921 111.795C237.154 89.6413 281.445 78.0002 326.5 78.0002C371.555 78.0002 415.846 89.6413 455.079 111.795L410.848 190.126C385.111 175.593 356.056 167.956 326.5 167.956C296.944 167.956 267.889 175.593 242.152 190.126L197.921 111.795Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-naviki-1.png" height="40" width="40" x="304" y="106"></image> 
+                    <path class="button-border" d="M412.406 195.707C436.919 210.352 457.282 231.021 471.56 255.75C485.837 280.479 493.555 308.448 493.982 337L490.632 337.05C490.214 309.069 482.65 281.66 468.658 257.425C454.666 233.19 434.711 212.935 410.688 198.583L412.406 195.707Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="12" data-name="Руководство по эксплуатации" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M459.409 114.295C498.211 137.194 530.438 169.731 552.966 208.75C575.493 247.769 587.558 291.947 587.988 337L498.036 337.86C497.754 308.305 489.84 279.324 475.062 253.728C460.284 228.131 439.143 206.787 413.689 191.765L459.409 114.295Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-naviki-1.png" height="40" width="40" x="490" y="211"></image> 
+                    <path class="button-border" d="M493.981 342C493.555 370.552 485.837 398.521 471.559 423.25C457.282 447.98 436.919 468.648 412.406 483.293L410.688 480.417C434.711 466.065 454.666 445.81 468.658 421.575C482.65 397.34 490.214 369.931 490.632 341.95L493.981 342Z" fill="#D9D9D9" :style="radialLocationCarActive ? '#D9D9D9' : 'fill: rgba(0,0,0,0.3)'"></path>
+                    <path class="button" data-button="13" data-name="Построить маршрут на навигаторе" data-warning="Транспорт находится поблизости" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="radialLocationCarActive && onclickbutton($event.target.dataset.button)" d="M587.988 342C587.557 387.053 575.493 431.231 552.966 470.25C530.438 509.269 498.211 541.805 459.409 564.705L413.688 487.234C439.143 472.212 460.283 450.868 475.062 425.272C489.84 399.675 497.754 370.695 498.036 341.14L587.988 342Z" fill="rgba(0,0,0,0.5)" :style="radialLocationCarActive ? '' : 'fill: rgba(0,0,0,0.4)'"></path>
+                    <image href="images/icon-location-1.png" height="34" width="34" x="495" y="425" :style="radialLocationCarActive ? 'opacity: 1' : 'opacity: .7'"></image> 
+                    <path class="button-border" d="M408.075 485.793C383.136 499.7 355.055 507 326.5 507C297.945 507 269.864 499.7 244.924 485.793L246.556 482.867C270.996 496.496 298.516 503.65 326.5 503.65C354.484 503.65 382.003 496.496 406.444 482.867L408.075 485.793Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="14" data-name="Отбуксировать транспорт" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M455.079 567.205C415.846 589.359 371.555 601 326.5 601C281.445 601 237.154 589.359 197.921 567.205L242.152 488.874C267.889 503.407 296.944 511.044 326.5 511.044C356.056 511.044 385.111 503.407 410.848 488.874L455.079 567.205Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-towtruck-1.png" height="39" width="39" x="306" y="535"></image> 
+                    <path class="button-border" d="M240.594 483.293C216.081 468.648 195.718 447.979 181.44 423.25C167.163 398.521 159.445 370.552 159.018 342L162.368 341.95C162.786 369.931 170.35 397.34 184.342 421.575C198.334 445.81 218.289 466.065 242.312 480.417L240.594 483.293Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="15" data-name="Продать транспорт" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M193.591 564.705C154.789 541.806 122.562 509.269 100.034 470.25C77.5065 431.231 65.4425 387.053 65.0118 342L154.964 341.14C155.246 370.695 163.16 399.676 177.938 425.272C192.716 450.869 213.857 472.213 239.311 487.235L193.591 564.705Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-sellcar-1.png" height="38" width="38" x="117" y="425"></image> 
+                    <path class="button-border" d="M159.019 337C159.445 308.448 167.163 280.479 181.441 255.75C195.718 231.02 216.081 210.352 240.594 195.707L242.312 198.583C218.289 212.935 198.334 233.19 184.342 257.425C170.35 281.66 162.786 309.069 162.368 337.05L159.019 337Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="16" data-name="Выгрузить транспорт" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M65.0118 337C65.4426 291.947 77.5066 247.769 100.034 208.75C122.562 169.731 154.789 137.195 193.591 114.295L239.312 191.766C213.857 206.788 192.717 228.132 177.938 253.728C163.16 279.325 155.246 308.305 154.964 337.86L65.0118 337Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-cars2-1.png" height="40" width="40" x="116" y="210"></image> 
+                </g>
+                <g v-if="radialCurrentMenu == 12" transform="translate(-69.5, -68.5) scale(0.995)" v-cloak="">
+                    <path class="button-border" d="M253.841 250.305C285.097 219.968 326.942 203 370.5 203C414.058 203 455.903 219.968 487.159 250.305L484.826 252.709C454.195 222.979 413.187 206.35 370.5 206.35C327.813 206.35 286.805 222.979 256.174 252.709L253.841 250.305Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="17" data-name="Навыки владения оружием" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M187.368 183.832C236.257 135.869 302.012 109 370.5 109C438.988 109 504.743 135.869 553.632 183.832L490.635 248.046C458.563 216.582 415.428 198.956 370.5 198.956C325.572 198.956 282.437 216.582 250.365 248.046L187.368 183.832Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-skill-gun-1.png" height="50" width="50" x="345" y="132"></image> 
+                    <path class="button-border" d="M490.695 253.841C521.032 285.097 538 326.942 538 370.5C538 414.058 521.032 455.903 490.695 487.159L488.291 484.826C518.021 454.195 534.65 413.187 534.65 370.5C534.65 327.813 518.021 286.805 488.291 256.174L490.695 253.841Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="18" data-name="Удостоверение развозчика" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M557.168 187.368C605.131 236.257 632 302.012 632 370.5C632 438.988 605.131 504.743 557.168 553.632L492.954 490.635C524.418 458.563 542.044 415.428 542.044 370.5C542.044 325.572 524.418 282.437 492.954 250.365L557.168 187.368Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-skill-razvos-1.png" height="50" width="50" x="561" y="340"></image> 
+                    <path class="button-border" d="M487.159 490.695C455.903 521.032 414.058 538 370.5 538C326.942 538 285.097 521.032 253.841 490.695L256.174 488.291C286.805 518.021 327.813 534.65 370.5 534.65C413.187 534.65 454.195 518.021 484.826 488.291L487.159 490.695Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="19" data-name="Физические навыки" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M553.632 557.168C504.743 605.131 438.988 632 370.5 632C302.012 632 236.257 605.131 187.368 557.168L250.365 492.954C282.437 524.418 325.572 542.044 370.5 542.044C415.428 542.044 458.563 524.418 490.635 492.954L553.632 557.168Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-skill-1.png" height="50" width="50" x="345" y="560"></image> 
+                    <path class="button-border" d="M250.305 487.159C219.968 455.903 203 414.058 203 370.5C203 326.942 219.968 285.097 250.305 253.841L252.709 256.174C222.979 286.805 206.35 327.813 206.35 370.5C206.35 413.187 222.979 454.195 252.709 484.826L250.305 487.159Z" fill="#D9D9D9"></path>
+                    <path class="button" data-button="20" data-name="Удостоверение дальнобойщика" @mouseover="mouseoverButton($event.target), hoverButton($event.target, true)" @mouseout="onmouseoutButton($event.target), hoverButton($event.target, false)" @click="onclickbutton($event.target.dataset.button)" d="M183.832 553.632C135.869 504.743 109 438.988 109 370.5C109 302.012 135.869 236.257 183.832 187.368L248.046 250.365C216.582 282.437 198.956 325.572 198.956 370.5C198.956 415.428 216.582 458.563 248.046 490.635L183.832 553.632Z" fill="rgba(0,0,0,0.5)"></path>
+                    <image href="images/icon-skill-dalnoboy-1.png" height="50" width="50" x="130" y="340"></image> 
+                </g>
+            </svg>  
+        </div>
+    </div>
+    <script src="js/vue.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/hud.js"></script>
+</body>
+</html>
